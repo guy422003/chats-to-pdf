@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>צ'אטים ל-PDF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: calm, practical, reassuring — someone is saving years of conversations.
+   IDEA: a bound archive — each chat becomes a printed volume.
+   PICTURE: the live first page of the PDF on a paper sheet, rendered by the same engine.
+   COLOUR and TYPE: ink-black band, white paper, one coral accent; Rubik (Hebrew-native).
+   LAYOUT: dark title band; tool column beside the paper preview; how-to below. */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#111214);--ink:light-dark(#15171c,#eceef2);--muted:light-dark(#5c6270,#a2a8b4);--line:light-dark(#e3e5ea,#2a2d33);--card:light-dark(#f6f6f4,#1a1c20);--band:light-dark(#15171c,#08090b);--acc:#ff5a3c;--acc-ink:light-dark(#c8341a,#ff8a70)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Rubik,"Arial Hebrew",Arial,sans-serif;overflow-x:clip}
+.band{padding:clamp(28px,4vw,56px) max(5vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+.top{background:var(--band);color:#f3f4f6}
+.top h1{font-size:clamp(32px,5vw,48px);line-height:1.05;margin:0 0 14px;font-weight:700;text-wrap:balance}
+.top p{margin:0;max-width:62ch;color:#c9ccd3;font-size:17px}
+.top .safe{margin-top:14px;display:inline-flex;gap:8px;align-items:center;font-size:14px;color:#f3f4f6;border:1px solid #3a3d44;border-radius:999px;padding:6px 14px}
+.top .safe i{width:8px;height:8px;border-radius:50%;background:var(--acc)}
+.grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:clamp(24px,4vw,56px);align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;border:2px dashed var(--line);border-radius:18px;padding:34px 20px;cursor:pointer;background:var(--card);transition:border-color .2s}
+.drop:hover,.drop.on{border-color:var(--acc)}
+.drop b{font-size:20px;font-weight:600}.drop span{color:var(--muted);font-size:15px}
+.drop input{position:absolute;width:1px;height:1px;opacity:0}
+.drop:focus-within{outline:3px solid var(--acc);outline-offset:3px}
+.row{display:flex;flex-wrap:wrap;gap:14px 20px;align-items:end;margin:22px 0 8px}
+.field{flex:1 1 240px}
+.field label{display:block;font-size:14px;font-weight:500;margin-bottom:6px}
+.field input{width:100%;font:inherit;font-size:16px;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);min-height:46px}
+.field input:focus{outline:2px solid var(--acc);outline-offset:1px}
+.hint{font-size:13px;color:var(--muted);margin-top:6px}
+.check{display:flex;gap:10px;align-items:center;min-height:46px;font-size:15px;cursor:pointer}
+.check input{width:20px;height:20px;accent-color:var(--acc)}
+h2{font-size:22px;margin:30px 0 10px;font-weight:600}
+.chats{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.chats li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;padding:14px 4px;border-bottom:1px solid var(--line);align-items:center}
+.chats li.sel{background:var(--card)}
+.chats .nm{font-weight:600;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;background:none;border:0;color:inherit;font-family:inherit;text-align:start;padding:0}
+.chats .meta{font-size:14px;color:var(--muted)}
+.who{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px;margin-top:6px}
+.who select{font:inherit;font-size:16px;min-height:40px;padding:4px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);max-width:100%}
+.warn{font-size:13px;color:var(--acc-ink);margin-top:4px}
+.chats .st{grid-column:1/-1;font-size:14px;color:var(--muted)}
+.chats .st.err{color:var(--acc-ink)}
+.bar{grid-column:1/-1;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .2s}
+.btns{display:flex;gap:8px;grid-row:span 2}
+button.b{font:inherit;font-weight:500;font-size:15px;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;white-space:nowrap}
+button.b.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+button.b:disabled{opacity:.5;cursor:default}
+button.b:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.empty{color:var(--muted);padding:16px 4px;font-size:15px}
+.all{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap}
+.paper{position:sticky;top:20px}
+.sheet{background:#fff;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 18px 50px -12px rgba(0,0,0,.28);overflow:hidden;max-width:460px;margin:0 auto;aspect-ratio:1240/1754}
+.sheet canvas{display:block;width:100%;height:100%}
+.cap{text-align:center;font-size:14px;color:var(--muted);margin-top:14px}
+.how{border-top:1px solid var(--line)}
+.how .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:24px 48px}
+.how h2{margin-top:0}
+.how ol,.how ul{margin:0;padding-inline-start:22px}.how li{margin:6px 0}
+#msg{min-height:22px;font-size:15px;color:var(--acc-ink);margin-top:10px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="band top"><div class="wrap">
+  <h1>כל צ'אט מוואטסאפ הופך לקובץ PDF</h1>
+  <p>בחר את קבצי ה-zip שייצאת מוואטסאפ. כל צ'אט יהפוך ל-PDF מסודר לפי תאריכים, עם התמונות בתוך השיחה ותמונה מקדימה לכל סרטון.</p>
+  <div class="safe"><i></i>הכול קורה במכשיר שלך. שום קובץ לא נשלח לשום מקום.</div>
+</div></header>
+
+<main class="band"><div class="wrap grid">
+  <section>
+    <label class="drop" id="drop">
+      <input type="file" id="file" multiple>
+      <b>בחירת קבצי ייצוא</b>
+      <span>קבצי ‎.zip‎ מוואטסאפ, אפשר כמה ביחד. במחשב אפשר גם לגרור לכאן.</span>
+    </label>
+    <div class="row">
+      <div class="field">
+        <label for="me">השם שלך כפי שהוא מופיע בייצוא</label>
+        <input id="me" list="names" autocomplete="off" placeholder="בחר מהרשימה או הקלד">
+        <datalist id="names"></datalist>
+        <div class="hint">ההודעות שלך יופיעו בצד שמאל, בירוק. אפשר גם לבחור בכל צ'אט בנפרד.</div>
+      </div>
+      <div><label class="check"><input type="checkbox" id="thumbs" checked>תמונה מקדימה לסרטונים</label><label class="check"><input type="checkbox" id="hideSec" checked>הסתרת ההודעות "קוד האבטחה השתנה"</label></div>
+    </div>
+    <div id="msg" aria-live="polite"></div>
+    <h2>הצ'אטים שנטענו</h2>
+    <ul class="chats" id="chats"><li class="empty" style="display:block">עדיין לא נבחרו קבצים.</li></ul>
+    <div class="all"><button class="b pri" id="allBtn" disabled>יצירת PDF לכל הצ'אטים</button></div>
+  </section>
+  <aside class="paper">
+    <div class="sheet"><canvas id="pv" width="1240" height="1754"></canvas></div>
+    <div class="cap" id="cap">דוגמה: כך ייראה העמוד הראשון של כל צ'אט</div>
+  </aside>
+</div></main>
+
+<section class="band how"><div class="wrap cols">
+  <div>
+    <h2>איך מייצאים צ'אט באייפון</h2>
+    <ol>
+      <li>פותחים את הצ'אט בוואטסאפ ולוחצים על השם שלו למעלה.</li>
+      <li>גוללים למטה ובוחרים "ייצוא צ'אט".</li>
+      <li>בוחרים "צרף מדיה". אם זה קורס, מנסים שוב עם "ללא מדיה".</li>
+      <li>בוחרים "שמירה בקבצים" ושומרים את כולם באותה תיקייה.</li>
+      <li>חוזרים על זה לכל צ'אט, ואז בוחרים כאן את כל קובצי ה-zip ביחד.</li>
+    </ol>
+  </div>
+  <div>
+    <h2>כדאי לדעת</h2>
+    <ul>
+      <li>וואטסאפ לא מאפשר לייצא את כל הצ'אטים בבת אחת, ולכן צריך לייצא כל צ'אט בנפרד.</li>
+      <li>אי אפשר לשים סרטונים והקלטות בתוך PDF. במקומם תופיע תמונה מקדימה או תווית, והקבצים המקוריים נשארים בתוך ה-zip. שמור גם אותו.</li>
+      <li>יצירת PDF לצ'אט גדול יכולה לקחת כמה דקות. השאר את המסך פתוח. יש הרבה מדיה? עדיף להעביר את קבצי ה-zip למק ולהפעיל את הכלי שם.</li>
+    </ul>
+  </div>
+</div></section>
+
+<script>
+{
+const $=s=>document.querySelector(s);
+const PW=1240,PH=1754,MX=84,TOP=124,BOT=PH-96;
+const FONT='Rubik,"Arial Hebrew","Segoe UI",Arial,sans-serif';
+const STOP={},CANCEL={};
+const RTLC=/[֐-ࣿיִ-﷿ﹰ-﻿]/,LTRC=/[A-Za-zÀ-ɏЀ-ӿ]/;
+const isRtl=s=>{for(const ch of s){if(RTLC.test(ch))return true;if(LTRC.test(ch))return false}return true};
+const lr=s=>'\u202a'+s+'\u202c';
+const tick=()=>new Promise(r=>setTimeout(r,0));
+const NC=['#c0392b','#1e7f74','#7b4bb7','#b05a00','#2b6cb0','#a23b72','#3d7a1f','#8a5a2b'];
+const ncol=s=>{let h=0;for(const ch of s)h=(h*31+ch.codePointAt(0))>>>0;return NC[h%NC.length]};
+const IMG=['jpg','jpeg','png','webp','gif','heic','heif','bmp'],VID=['mp4','mov','m4v','3gp','webm'],AUD=['opus','m4a','mp3','aac','ogg','wav','amr'];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let store={};try{store=JSON.parse(localStorage.getItem('wa2pdf')||'{}')}catch(e){}
+const remember=()=>{try{localStorage.setItem('wa2pdf',JSON.stringify(store))}catch(e){}};
+
+/* ---------- ZIP (reads entries lazily, no library) ---------- */
+async function openZip(file){
+  const size=file.size,tl=Math.min(size,65557+20);
+  const tail=new DataView(await file.slice(size-tl).arrayBuffer());
+  let e=-1;for(let i=tl-22;i>=0;i--){if(tail.getUint32(i,true)===0x06054b50){e=i;break}}
+  if(e<0)throw new Error('zip');
+  let cnt=tail.getUint16(e+10,true),cdSize=tail.getUint32(e+12,true),cdOff=tail.getUint32(e+16,true);
+  const u64=(d,p)=>d.getUint32(p,true)+d.getUint32(p+4,true)*4294967296;
+  if((cdOff===0xffffffff||cnt===0xffff)&&e>=20&&tail.getUint32(e-20,true)===0x07064b50){
+    const o64=u64(tail,e-20+8);const d=new DataView(await file.slice(o64,o64+56).arrayBuffer());
+    cnt=u64(d,32);cdSize=u64(d,40);cdOff=u64(d,48);
+  }
+  const cd=new DataView(await file.slice(cdOff,cdOff+cdSize).arrayBuffer());
+  const dec=new TextDecoder(),map=new Map();let p=0;
+  while(p+46<=cd.byteLength&&cd.getUint32(p,true)===0x02014b50){
+    const method=cd.getUint16(p+10,true);let cs=cd.getUint32(p+20,true),us=cd.getUint32(p+24,true);
+    const nl=cd.getUint16(p+28,true),xl=cd.getUint16(p+30,true),cl=cd.getUint16(p+32,true);let lho=cd.getUint32(p+42,true);
+    const name=dec.decode(new Uint8Array(cd.buffer,p+46,nl));
+    let x=p+46+nl;const xe=x+xl;
+    while(x+4<=xe){const id=cd.getUint16(x,true),sz=cd.getUint16(x+2,true);if(id===1){let q=x+4;if(us===0xffffffff){us=u64(cd,q);q+=8}if(cs===0xffffffff){cs=u64(cd,q);q+=8}if(lho===0xffffffff){lho=u64(cd,q)}}x+=4+sz}
+    p=xe+cl;
+    const base=name.split('/').pop();
+    if(!base||name.endsWith('/')||name.startsWith('__MACOSX/')||base.startsWith('._'))continue;
+    map.set(base,{method,cs,lho,full:name});
+  }
+  return{names:[...map.keys()],async get(n){
+    const en=map.get(n);if(!en)return null;
+    const h=new DataView(await file.slice(en.lho,en.lho+30).arrayBuffer());
+    const start=en.lho+30+h.getUint16(26,true)+h.getUint16(28,true);
+    const raw=file.slice(start,start+en.cs);
+    if(en.method===0)return raw;
+    if(en.method===8)return new Response(raw.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();
+    throw new Error('method '+en.method);
+  }};
+}
+
+/* ---------- WhatsApp text parsing (iPhone and Android formats) ---------- */
+const SEC=/(security code|קוד האבטחה|קוד אבטחה|código de seguridad|code de sécurité|код безопасности)/i;
+const MARKS=/^[‎‏‪-‮⁦-⁩\s]+|[‎‏‪-‮⁦-⁩\s]+$/g;
+const IOS=/^[‎‏‪-‮]*\[(\d{1,4}[.\/-]\d{1,2}[.\/-]\d{1,4}),?\s+(\d{1,2}[:.]\d{2}(?:[:.]\d{2})?(?:[\s ]?[APap]\.?\s?[Mm]\.?)?)\]\s?(.*)$/;
+const AND=/^[‎‏‪-‮]*(\d{1,4}[.\/-]\d{1,2}[.\/-]\d{1,4}),?\s+(\d{1,2}[:.]\d{2}(?:[:.]\d{2})?(?:[\s ]?[APap]\.?\s?[Mm]\.?)?)\s[-–]\s(.*)$/;
+function parseChat(txt,files){
+  txt=txt.replace(/^﻿/,'').replace(/\r\n?/g,'\n');
+  const msgs=[];let cur=null;
+  for(const line of txt.split('\n')){
+    const m=IOS.exec(line)||AND.exec(line);
+    if(!m){if(cur)cur.text+='\n'+line;continue}
+    const time=m[2].replace(/^(\d{1,2}[:.]\d{2})[:.]\d{2}/,'$1').replace(/ /g,' ');
+    const rest=m[3];const k=rest.indexOf(': ');
+    cur={date:m[1],time,sender:'',text:rest,sys:true,file:null};
+    if(k>0&&k<80){cur.sender=rest.slice(0,k).replace(MARKS,'');cur.text=rest.slice(k+2);cur.sys=false}
+    msgs.push(cur);
+  }
+  const tok=/[^\s<>:"'‎‏‪-‮]+\.[A-Za-z0-9]{2,5}/g;
+  for(const m of msgs){
+    const lead=/^[‎‏]/.test(m.text);
+    for(const t of m.text.match(tok)||[]){
+      if(files.has(t)){m.file=t;
+        const at=m.text.indexOf(t);
+        const lt=m.text.lastIndexOf('<',at),gt=m.text.indexOf('>',at);
+        if(lt>=0&&gt>at&&!m.text.slice(lt,at).includes('\n'))m.text=m.text.slice(0,lt)+m.text.slice(gt+1);
+        else m.text=m.text.slice(0,at)+m.text.slice(at+t.length).replace(/^\s*\([^)\n]{1,40}\)/,'');
+        break}
+    }
+    m.text=m.text.replace(MARKS,'');
+    if(SEC.test(m.text)&&(lead||!m.sender)&&!m.file&&!/\n/.test(m.text)){m.sys=true;m.sec=true}
+    if(!m.sys&&lead&&!m.file&&m.text&&!/\n/.test(m.text)&&/(encrypted|מוצפנ|created|יצר|added|הוסיפ|joined|הצטרפ|removed|הסיר|left|עזב|changed|שינ|השתנ|פרטים נוספים|learn more)/i.test(m.text))m.sys=true;
+    if(m.sys&&m.sender){m.text=m.text}
+  }
+  return msgs;
+}
+function chatName(fn){
+  let n=fn.replace(/\.(zip|txt)$/i,'');
+  n=n.replace(/^(WhatsApp\s*Chat\s*(?:-|with)?\s*|צ.?אט\s*(?:של\s*)?(?:WhatsApp|וואטסאפ)\s*(?:עם|-)?\s*)/i,'').trim();
+  return(!n||n==='_chat')?"צ'אט":n;
+}
+
+/* ---------- page renderer (canvas) ---------- */
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+function wrap(c,text,maxW){
+  const out=[];
+  for(const para of text.split('\n')){
+    if(!para){out.push('');continue}
+    let line='';
+    for(const w of para.split(' ')){
+      const t=line?line+' '+w:w;
+      if(c.measureText(t).width<=maxW){line=t;continue}
+      if(line)out.push(line);
+      if(c.measureText(w).width<=maxW){line=w;continue}
+      let part='';for(const ch of w){if(c.measureText(part+ch).width>maxW){out.push(part);part=ch}else part+=ch}
+      line=part;
+    }
+    out.push(line);
+  }
+  while(out.length&&out[out.length-1]==='')out.pop();
+  return out;
+}
+function fitText(c,s,maxW){if(c.measureText(s).width<=maxW)return s;while(s.length>1&&c.measureText(s+'…').width>maxW)s=s.slice(0,-1);return s+'…'}
+function vthumb(blob){return new Promise(res=>{
+  const v=document.createElement('video'),u=URL.createObjectURL(blob);let done=false;
+  const end=b=>{if(done)return;done=true;clearTimeout(t);v.removeAttribute('src');try{v.load()}catch(e){}URL.revokeObjectURL(u);res(b)};
+  const t=setTimeout(()=>end(null),7000);
+  v.muted=true;v.playsInline=true;v.setAttribute('playsinline','');v.preload='auto';
+  v.onloadeddata=()=>{try{v.currentTime=Math.min(0.5,(v.duration||1)/3)}catch(e){end(null)}};
+  v.onseeked=async()=>{try{const k=document.createElement('canvas');k.width=v.videoWidth;k.height=v.videoHeight;k.getContext('2d').drawImage(v,0,0);end(await createImageBitmap(k))}catch(e){end(null)}};
+  v.onerror=()=>end(null);v.src=u;
+})}
+async function loadMedia(chat,file,o,inner){
+  const ext=(file.split('.').pop()||'').toLowerCase();
+  const box=(label,sub)=>({kind:'box',sub,label,w:inner,h:78});
+  let blob=null;try{blob=await chat.get(file)}catch(e){}
+  if(!blob)return box('קובץ חסר · '+lr(file),'doc');
+  const fit=(bmp,kind)=>{const s=Math.min(1.6,inner/bmp.width,(kind==='vid'?480:640)/bmp.height);return{kind,bmp,w:Math.max(80,Math.round(bmp.width*s)),h:Math.max(60,Math.round(bmp.height*s)),label:file}};
+  if(IMG.includes(ext)){try{return fit(await createImageBitmap(blob),'img')}catch(e){return box('תמונה · '+lr(file),'img')}}
+  if(VID.includes(ext)){if(o.thumbs){const b=await vthumb(blob);if(b)return fit(b,'vid')}return box('סרטון · '+lr(file),'vid')}
+  if(AUD.includes(ext))return box('הודעה קולית · '+lr(file),'aud');
+  return box('קובץ · '+lr(file),'doc');
+}
+function drawMedia(c,m,x,y){
+  if(m.kind==='box'){
+    c.fillStyle='rgba(0,0,0,.06)';rr(c,x,y,m.w,m.h,12);c.fill();
+    c.fillStyle='#6b7280';rr(c,x+m.w-62,y+15,48,48,10);c.fill();
+    c.fillStyle='#fff';
+    if(m.sub==='vid'||m.sub==='aud'){c.beginPath();c.moveTo(x+m.w-46,y+27);c.lineTo(x+m.w-26,y+39);c.lineTo(x+m.w-46,y+51);c.closePath();c.fill()}
+    else{c.fillRect(x+m.w-48,y+27,20,3);c.fillRect(x+m.w-48,y+37,20,3);c.fillRect(x+m.w-48,y+47,13,3)}
+    c.font=`400 22px ${FONT}`;c.fillStyle='#374151';c.direction='rtl';c.textAlign='right';
+    c.fillText(fitText(c,m.label,m.w-100),x+m.w-78,y+27);return;
+  }
+  c.save();rr(c,x,y,m.w,m.h,12);c.clip();c.drawImage(m.bmp,x,y,m.w,m.h);c.restore();
+  if(m.kind==='vid'){const cx=x+m.w/2,cy=y+m.h/2;c.fillStyle='rgba(0,0,0,.55)';c.beginPath();c.arc(cx,cy,42,0,7);c.fill();c.fillStyle='#fff';c.beginPath();c.moveTo(cx-13,cy-21);c.lineTo(cx+21,cy);c.lineTo(cx-13,cy+21);c.closePath();c.fill()}
+  try{m.bmp.close()}catch(e){}
+}
+async function render(chat,o){
+  const cv=o.canvas,c=cv.getContext('2d');cv.width=PW;cv.height=PH;c.textBaseline='top';
+  const me=o.me,group=chat.senders.length>2;
+  const BW=Math.round((PW-2*MX)*.76),PAD=22,TF=27,LH=38,FOOT=40;
+  let page=0,y=0;
+  const start=()=>{page++;c.fillStyle='#fff';c.fillRect(0,0,PW,PH);c.font=`500 20px ${FONT}`;c.fillStyle='#8a8f99';c.direction='rtl';c.textAlign='right';c.fillText(fitText(c,chat.name,PW-2*MX-120),PW-MX,52);c.direction='ltr';c.textAlign='left';c.fillText(String(page),MX,52);c.fillStyle='#e6e7ea';c.fillRect(MX,86,PW-2*MX,2);y=TOP};
+  const finish=async()=>{await o.onPage(cv,page)};
+  const newPage=async()=>{await finish();if(o.max&&page>=o.max)throw STOP;start()};
+  const need=async h=>{if(y+h>BOT&&y>TOP)await newPage()};
+  start();
+  c.direction='rtl';c.textAlign='right';c.fillStyle='#15171c';c.font=`700 48px ${FONT}`;
+  for(const l of wrap(c,chat.name,PW-2*MX).slice(0,2)){c.fillText(l,PW-MX,y);y+=58}
+  const real=chat.msgs.filter(m=>!m.sys);
+  c.font=`400 23px ${FONT}`;c.fillStyle='#5c6270';
+  const first=chat.msgs[0],last=chat.msgs[chat.msgs.length-1];
+  c.fillText(`${real.length.toLocaleString('he-IL')} הודעות${first?` · ${lr(first.date)} עד ${lr(last.date)}`:''}`,PW-MX,y+6);y+=40;
+  if(chat.senders.length){c.fillText(fitText(c,'משתתפים: '+chat.senders.join(', '),PW-2*MX),PW-MX,y+4);y+=40}
+  y+=24;
+  let lastDate=null;
+  for(let i=0;i<chat.msgs.length;i++){
+    if(o.cancel&&o.cancel())throw CANCEL;
+    if(i%30===0){o.onProgress&&o.onProgress(i/chat.msgs.length);await tick()}
+    const m=chat.msgs[i];
+    if(m.sec&&o.hideSec)continue;
+    if(m.date!==lastDate){
+      lastDate=m.date;await need(150);
+      c.font=`500 21px ${FONT}`;c.direction='ltr';const w=c.measureText(m.date).width+40;
+      c.fillStyle='#eef0f3';rr(c,(PW-w)/2,y+14,w,40,20);c.fill();
+      c.fillStyle='#5c6270';c.textAlign='center';c.fillText(m.date,PW/2,y+23);y+=72;
+    }
+    if(m.sys){
+      c.font=`400 21px ${FONT}`;const ls=wrap(c,(m.sender&&!m.text.includes(m.sender)?m.sender+': ':'')+m.text,PW*.62);const h=ls.length*30+22;await need(h+14);
+      let mw=0;for(const l of ls)mw=Math.max(mw,c.measureText(l).width);
+      c.fillStyle='#fbf3dc';rr(c,(PW-mw)/2-20,y,mw+40,h,14);c.fill();
+      c.fillStyle='#6b5b2a';c.textAlign='center';c.direction=isRtl(m.text)?'rtl':'ltr';
+      ls.forEach((l,k)=>c.fillText(l,PW/2,y+12+k*30));y+=h+16;continue;
+    }
+    const mine=!!me&&m.sender===me;
+    const rtl=isRtl(m.text||'א');const inner=BW-2*PAD;
+    c.font=`400 ${TF}px ${FONT}`;const lines=m.text?wrap(c,m.text,inner):[];
+    let tw=0;for(const l of lines)tw=Math.max(tw,c.measureText(l).width);
+    let name=null,nw=0;if(!mine&&group&&m.sender){c.font=`600 22px ${FONT}`;name=m.sender;nw=Math.min(inner,c.measureText(name).width)}
+    const med=m.file?await loadMedia(chat,m.file,o,inner):null;
+    c.font=`400 18px ${FONT}`;const tmw=c.measureText(m.time).width;
+    const w=Math.ceil(Math.min(BW,Math.max(tw,nw,med?med.w:0,tmw+24,120)+2*PAD));
+    const x=mine?MX:PW-MX-w;
+    const headH=PAD+(name?34:0)+(med?med.h+(lines.length?14:0):0);
+    const part=(a,b,head,foot)=>{
+      const h=(head?headH:PAD)+(b-a)*LH+(foot?FOOT:PAD-8);
+      c.fillStyle=mine?'#d9fdd3':'#f1f2f4';rr(c,x,y,w,h,18);c.fill();
+      let yy=y+PAD;
+      if(head){
+        if(name){c.font=`600 22px ${FONT}`;c.fillStyle=ncol(name);c.direction='rtl';c.textAlign='right';c.fillText(fitText(c,name,inner),x+w-PAD,yy);yy+=34}
+        if(med){drawMedia(c,med,x+(w-med.w)/2,yy);yy+=med.h+(lines.length?14:0)}
+      }
+      c.font=`400 ${TF}px ${FONT}`;c.fillStyle='#15171c';c.direction=rtl?'rtl':'ltr';c.textAlign=rtl?'right':'left';
+      for(let k=a;k<b;k++){c.fillText(lines[k],rtl?x+w-PAD:x+PAD,yy+4);yy+=LH}
+      if(foot){c.font=`400 18px ${FONT}`;c.fillStyle='#7a808c';c.direction='ltr';c.textAlign='left';c.fillText(m.time,x+PAD,yy+8)}
+      y+=h+12;
+    };
+    const full=headH+lines.length*LH+FOOT;
+    if(y+full<=BOT){part(0,lines.length,true,true);continue}
+    if(full<=BOT-TOP){await newPage();part(0,lines.length,true,true);continue}
+    if(y+headH+3*LH+PAD>BOT)await newPage();
+    let a=0,head=true;
+    while(true){
+      const room=BOT-y-(head?headH:PAD);
+      const lastFits=room-FOOT>=(lines.length-a)*LH;
+      if(lastFits){part(a,lines.length,head,true);break}
+      const n=Math.max(1,Math.floor((room-PAD)/LH));
+      part(a,a+n,head,false);a+=n;head=false;await newPage();
+    }
+  }
+  await finish();
+  return page;
+}
+
+/* ---------- minimal PDF writer: one JPEG per page ---------- */
+function buildPdf(pages,title){
+  const enc=new TextEncoder(),parts=[],offs=[];let off=0;
+  const put=x=>{const b=typeof x==='string'?enc.encode(x):x;parts.push(b);off+=b.length};
+  const obj=(n,s)=>{offs[n]=off;put(`${n} 0 obj\n${s}\nendobj\n`)};
+  const W='595.28',H='841.89',N=pages.length,tot=3+3*N;
+  let hex='';for(let i=0;i<title.length;i++)hex+=title.charCodeAt(i).toString(16).padStart(4,'0');
+  put('%PDF-1.4\n');put(new Uint8Array([37,226,227,207,211,10]));
+  obj(1,'<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2,`<< /Type /Pages /Count ${N} /Kids [${pages.map((_,i)=>`${4+3*i} 0 R`).join(' ')}] >>`);
+  obj(3,`<< /Title <FEFF${hex}> /Producer (Chat archive) >>`);
+  pages.forEach((jpg,i)=>{
+    const p=4+3*i;
+    obj(p,`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im0 ${p+2} 0 R >> >> /Contents ${p+1} 0 R >>`);
+    const s=`q ${W} 0 0 ${H} 0 0 cm /Im0 Do Q`;
+    obj(p+1,`<< /Length ${s.length} >>\nstream\n${s}\nendstream`);
+    offs[p+2]=off;
+    put(`${p+2} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${PW} /Height ${PH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg.length} >>\nstream\n`);
+    put(jpg);put('\nendstream\nendobj\n');
+  });
+  const xo=off;let x=`xref\n0 ${tot+1}\n0000000000 65535 f \n`;
+  for(let n=1;n<=tot;n++)x+=String(offs[n]).padStart(10,'0')+' 00000 n \n';
+  put(x+`trailer\n<< /Size ${tot+1} /Root 1 0 R /Info 3 0 R >>\nstartxref\n${xo}\n%%EOF\n`);
+  return new Blob(parts,{type:'application/pdf'});
+}
+const jpeg=cv=>new Promise((res,rej)=>cv.toBlob(b=>b?b.arrayBuffer().then(a=>res(new Uint8Array(a)),rej):rej(new Error('jpeg')),'image/jpeg',.84));
+
+/* ---------- saving ---------- */
+let dlP=null;
+const getDl=()=>{if(!dlP&&window.claude&&typeof window.claude.use==='function')dlP=Promise.resolve(window.claude.use('downloads')).catch(()=>null);return dlP||Promise.resolve(null)};
+getDl();
+async function saveFile(name,blob){
+  const d=await getDl();
+  if(d){try{await d.save({filename:name,data:blob});return'saved'}catch(e){const code=e&&e.code;if(code==='declined')return'declined';if(code==='rate_limited')return'busy';if(code==='too_large')throw new Error('הקובץ גדול מדי לשמירה כאן. נסה במחשב.');throw new Error('שמירת קבצים חסומה בעמוד הזה למי שאינו הבעלים שלו. בקש ממי ששיתף את הכלי את הגרסה העצמאית שלו (קובץ html).')}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),120000);return'saved';
+}
+
+/* ---------- app state + UI ---------- */
+const chats=[];let sel=null,pvTok=0;
+const meName=()=>$('#me').value.trim();
+const mb=n=>n>1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
+function addChat(name,txt,files,get){
+  const msgs=parseChat(txt,files);
+  const cnt=new Map();for(const m of msgs)if(!m.sys&&m.sender)cnt.set(m.sender,(cnt.get(m.sender)||0)+1);
+  const senders=[...cnt.keys()].sort((a,b)=>cnt.get(b)-cnt.get(a));
+  const ch={id:chats.length+1,name,msgs,senders,get,media:msgs.filter(m=>m.file).length,status:'',err:false,busy:false,out:null,prog:0};
+  chats.push(ch);return ch;
+}
+async function addFiles(list){
+  const files=[...list];if(!files.length)return;
+  $('#msg').textContent='קורא את הקבצים…';
+  const loose=[];let added=0;
+  for(const f of files){
+    if(/\.zip$/i.test(f.name)){
+      try{const z=await openZip(f);
+        const t=z.names.find(n=>n==='_chat.txt')||z.names.find(n=>/\.txt$/i.test(n)&&/chat|צ.?אט|whatsapp/i.test(n))||z.names.find(n=>/\.txt$/i.test(n));
+        if(!t){$('#msg').textContent=`ב-${f.name} אין קובץ שיחה (txt).`;continue}
+        const txt=await(await z.get(t)).text();addChat(chatName(f.name),txt,new Set(z.names),n=>z.get(n));added++;
+      }catch(e){$('#msg').textContent=`לא הצלחתי לפתוח את ${f.name}.`}
+    }else loose.push(f);
+  }
+  const txts=loose.filter(f=>/\.txt$/i.test(f.name)),media=new Map(loose.filter(f=>!/\.txt$/i.test(f.name)).map(f=>[f.name,f]));
+  for(const t of txts){addChat(chatName(t.name),await t.text(),new Set(media.keys()),async n=>media.get(n)||null);added++}
+  if(added){$('#msg').textContent='';guessMe();if(!sel)select(chats[chats.length-added])}
+  else if(!$('#msg').textContent)$('#msg').textContent='לא נמצאו קבצי ייצוא של וואטסאפ.';
+  drawList();
+}
+const norm=s=>String(s||'').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069~\u00a0]/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
+function guessMe(){
+  const all=new Set(chats.flatMap(c=>c.senders));
+  const dl=$('#names');dl.innerHTML=[...all].map(s=>`<option value="${esc(s)}">`).join('');
+  if(!meName()){
+    if(store.me&&[...all].some(x=>norm(x)===norm(store.me)))$('#me').value=store.me;
+    else if(chats.length>1){const common=chats.reduce((s,c)=>s.filter(x=>c.senders.includes(x)),chats[0].senders);if(common.length===1)$('#me').value=common[0]}
+  }
+  assignMe();
+}
+function assignMe(){
+  const g=norm(meName());
+  for(const c of chats){
+    if(c.meSet)continue;
+    let m=g?c.senders.find(x=>norm(x)===g):null;
+    if(!m&&c.senders.length===2){const o=c.senders.findIndex(x=>norm(x)===norm(c.name));if(o>=0)m=c.senders[1-o]}
+    c.me=m||'';
+  }
+}
+function drawList(){
+  const ul=$('#chats');
+  if(!chats.length){ul.innerHTML='<li class="empty" style="display:block">עדיין לא נבחרו קבצים.</li>';$('#allBtn').disabled=true;return}
+  ul.innerHTML=chats.map(c=>`<li class="${c===sel?'sel':''}" data-id="${c.id}">
+    <div><button class="nm" data-a="view">${esc(c.name)}</button>
+    <div class="meta">${c.msgs.filter(m=>!m.sys).length.toLocaleString('he-IL')} הודעות · ${c.media.toLocaleString('he-IL')} קבצי מדיה</div>
+    <label class="who">אני בצ'אט הזה: <select data-a="me"><option value="">לא נבחר</option>${c.senders.map(x=>`<option${x===c.me?' selected':''}>${esc(x)}</option>`).join('')}</select></label>${c.me?'':'<div class="warn">בחר את השם שלך, אחרת כל ההודעות יופיעו באותו צד.</div>'}</div>
+    <div class="btns">${c.busy?`<button class="b" data-a="stop">עצור</button>`:c.out?`<button class="b pri" data-a="save">שמירת PDF</button>`:`<button class="b pri" data-a="make">יצירת PDF</button>`}</div>
+    ${c.busy?`<div class="bar"><i style="width:${Math.round(c.prog*100)}%"></i></div>`:''}
+    ${c.status?`<div class="st${c.err?' err':''}">${esc(c.status)}</div>`:''}</li>`).join('');
+  $('#allBtn').disabled=chats.some(c=>c.busy);
+}
+function upd(c){const li=document.querySelector(`#chats li[data-id="${c.id}"]`);if(!li)return drawList();const b=li.querySelector('.bar i');if(b)b.style.width=Math.round(c.prog*100)+'%';const st=li.querySelector('.st');if(st)st.textContent=c.status;else drawList()}
+async function make(c){
+  if(c.busy)return;c.busy=true;c.cancel=false;c.err=false;c.out=null;c.prog=0;c.status='מכין עמודים…';drawList();
+  const pages=[],cv=document.createElement('canvas');
+  try{
+    await document.fonts.ready;
+    await render(c,{canvas:cv,me:c.me,thumbs:$('#thumbs').checked,hideSec:$('#hideSec').checked,cancel:()=>c.cancel,
+      onProgress:p=>{c.prog=p;upd(c)},onPage:async k=>{pages.push(await jpeg(k));c.status=`נוצרו ${pages.length} עמודים…`;upd(c)}});
+    const blob=buildPdf(pages,c.name);pages.length=0;
+    c.out=blob;c.busy=false;c.status=`מוכן (${mb(blob.size)})`;drawList();
+    await doSave(c);
+  }catch(e){c.busy=false;if(e===CANCEL){c.status='בוטל.'}else{c.err=true;c.status='משהו השתבש: '+(e&&e.message||e)}drawList()}
+}
+async function doSave(c){
+  if(!c.out)return;
+  const fn=(c.name.replace(/[\\\/:*?"<>|\u0000-\u001f]/g,' ').trim()||'chat')+'.pdf';
+  try{const r=await saveFile(fn,c.out);c.err=false;c.status=r==='saved'?`נשמר: \u2068${fn}\u2069 (${mb(c.out.size)})`:r==='busy'?'חלון שמירה אחר עדיין פתוח. נסה שוב בעוד רגע.':`השמירה בוטלה. אפשר ללחוץ שוב על "שמירת PDF".`}
+  catch(e){c.err=true;c.status=e.message}
+  drawList();
+}
+async function select(c){
+  sel=c;drawList();const tok=++pvTok;
+  $('#cap').textContent=`העמוד הראשון של "${c.name}"`;
+  try{await document.fonts.ready;await render(c,{canvas:$('#pv'),me:c.me,thumbs:$('#thumbs').checked,hideSec:$('#hideSec').checked,max:1,cancel:()=>tok!==pvTok,onPage:async()=>{}})}catch(e){}
+}
+$('#chats').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;const c=chats.find(x=>x.id==b.closest('li').dataset.id);if(!c)return;
+  const a=b.dataset.a;if(a==='view')select(c);else if(a==='make')make(c);else if(a==='save')doSave(c);else if(a==='stop')c.cancel=true;
+});
+$('#chats').addEventListener('change',e=>{
+  const t=e.target;if(t.dataset.a!=='me')return;const c=chats.find(x=>x.id==t.closest('li').dataset.id);if(!c||c.busy)return;
+  c.me=t.value;c.meSet=true;c.out=null;c.status='';drawList();select(c);
+});
+$('#allBtn').addEventListener('click',async()=>{for(const c of chats){if(c.out||c.busy)continue;await make(c)}});
+$('#file').addEventListener('change',e=>{addFiles(e.target.files);e.target.value=''});
+const drop=$('#drop');
+['dragenter','dragover'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add('on')}));
+['dragleave','drop'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove('on')}));
+drop.addEventListener('drop',e=>addFiles(e.dataTransfer.files));
+let meT=0;
+$('#me').addEventListener('input',()=>{store.me=meName();remember();assignMe();for(const c of chats)if(!c.busy)c.out=null,c.status='';clearTimeout(meT);meT=setTimeout(()=>{drawList();if(sel)select(sel)},350)});
+$('#thumbs').addEventListener('change',()=>{for(const c of chats)if(!c.busy)c.out=null,c.status='';drawList()});
+$('#hideSec').addEventListener('change',()=>{for(const c of chats)if(!c.busy)c.out=null,c.status='';drawList();if(sel)select(sel)});
+
+/* ---------- sample preview ---------- */
+const sampleImg=new Promise(res=>{const k=document.createElement('canvas');k.width=900;k.height=600;const g=k.getContext('2d');
+  let gr=g.createLinearGradient(0,0,0,600);gr.addColorStop(0,'#ffb88a');gr.addColorStop(.55,'#ffdcb8');gr.addColorStop(1,'#f4efe6');g.fillStyle=gr;g.fillRect(0,0,900,600);
+  g.fillStyle='#fff3d6';g.beginPath();g.arc(620,250,70,0,7);g.fill();
+  g.fillStyle='#7d8fa3';g.beginPath();g.moveTo(0,420);g.lineTo(220,250);g.lineTo(420,400);g.lineTo(600,290);g.lineTo(900,430);g.lineTo(900,600);g.lineTo(0,600);g.fill();
+  g.fillStyle='#45566b';g.beginPath();g.moveTo(0,500);g.lineTo(300,380);g.lineTo(560,480);g.lineTo(900,400);g.lineTo(900,600);g.lineTo(0,600);g.fill();
+  k.toBlob(res,'image/jpeg',.9)});
+const S=(date,time,sender,text,file)=>({date,time,sender,text,file:file||null,sys:!sender});
+const sample={name:'משפחה',senders:['אמא','אבא','אני'],get:async n=>n.endsWith('.jpg')?sampleImg:new Blob(['x']),msgs:[
+  S('12.10.2026','08:10','','ההודעות והשיחות מוצפנות מקצה לקצה.'),
+  S('12.10.2026','08:12','אמא','בוקר טוב! מי מגיע בשבת לארוחת צהריים?'),
+  S('12.10.2026','08:15','אני','אני מגיע, ואביא קינוח 🍰'),
+  S('12.10.2026','08:20','אבא','תראו מה צילמתי אתמול בטיול','IMG-20261011-WA0004.jpg'),
+  S('12.10.2026','08:21','אמא','איזה יופי!! תשלח לי בגודל מלא'),
+  S('12.10.2026','08:30','אני','Sounds great, see you Saturday'),
+  S('13.10.2026','19:02','אמא','','PTT-20261013-WA0011.opus'),
+  S('13.10.2026','19:05','אבא','שמעתי. סגור, נתראה בשבת 👍')]};
+document.fonts.ready.then(()=>{if(!sel)render(sample,{canvas:$('#pv'),me:'אני',thumbs:false,max:1,cancel:()=>!!sel,onPage:async()=>{}}).catch(()=>{})});
+window.__wa={render,parseChat,openZip,buildPdf,addFiles,chats,make};
+}
+</script>
+</body>
+</html>
